@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="board">
+	<!-- string 으로 들어오는 경우 -->
+	<select id="getTotalCount" parameterType="string"
+		resultType="int">
+		<choose>
+			<when test="_parameter == null or ''== _parameter">
+				<![CDATA[
+					select count(*) from board;
+				]]>
+			</when>
+			<otherwise>
+				<!-- 치환할때, $쓰면 된다. -->
+			<![CDATA[
+				select count(*) from board where title like '%${_parameter}%'
+				 or countents like '%${_parameter}%'
+			]]>
+			</otherwise>
+		</choose>
+	</select>
+
+	<select id="findAll" parameterType="map" resultType="boardvo">
+		<![CDATA[
+			select b.no as no
+			, b.title as title
+			, b.hit as hit
+			,  b.contents as contents
+			, a.name as userName
+			, date_format(reg_date, '%Y/%m/%d %H:%i:%s') as regDate
+			, b.user_no as userNo
+			, b.depth as depth
+			 from user a, board b
+			  where a.no = b.user_no 
+		]]>
+		<if test="input2 !=null and ''!=input2">
+			${input2}
+		</if>
+		<if test="input !=null and ''!=input">
+			and b.title like '%${input}%'
+		</if>
+		<![CDATA[
+			  order by b.g_no desc,  b.o_no asc, b.depth asc ${limit}
+		]]>
+	</select>
+
+	<insert id="insert" parameterType="boardvo">
+		<![CDATA[
+			 insert into board values (null, #{title}, #{contents}, 0,#{groupNo},1,1, now(), #{userNo})
+		]]>
+		<selectKey keyProperty="no" resultType="long" order="AFTER">
+			<!-- 지금 들어간 key 번호 알아내서 넘어오는 vo에 setno해라 -->
+		<![CDATA[
+			select last_insert_id();
+		]]>
+		</selectKey>
+	</insert>
+
+	<delete id="delete" parameterType="boardvo">
+		<![CDATA[
+		 	 delete from board where no=#{no} and user_no=#{userNo}
+		]]>
+	</delete>
+
+	<update id="updatehit" parameterType="Long">
+	<![CDATA[
+		update board set hit = hit+1 where no = #{_parameter}
+	]]>
+	</update>
+
+
+	<select id="view" parameterType="Long" resultType="boardvo">
+		<![CDATA[
+			select b.user_no as userNo
+			, b.title as title
+			, b.contents as contents
+			, b.hit as hit
+			, b.g_no as groupNo
+			, b.o_no as orderNo
+			, b.depth as depth 
+			, a.name as userName
+			, b.no as no
+			 from user a, board b where a.no = b.user_no and b.no = #{_parameter}
+		]]>
+	</select>
+
+	<select id="updateSerach" parameterType="map"
+		resultType="boardvo">
+		<![CDATA[
+			select title, contents from board where no=#{no}  and user_no = #{userNo}
+		]]>
+	</select>
+
+	<select id="maxGroupno" resultType="int">
+		<![CDATA[
+			select max(g_no)+1 from board
+		]]>
+
+	</select>
+
+	<update id="update" parameterType="boardvo">
+		<![CDATA[
+			update board set title = #{title}, contents = #{contents} where no = #{no}
+		]]>
+	</update>
+
+	<select id="findByNO" parameterType="long" resultType="boardvo">
+		<![CDATA[
+			select g_no as groupNo
+			, o_no as orderNo
+			, depth from board where no=#{_parameter}
+		]]>
+	</select>
+
+	<insert id="comment" parameterType="boardvo">
+	<![CDATA[
+			insert into board values (null, #{userNo}, #{title}, #{contents}, 0,#{groupNo}, ${orderNo}+1, ${depth}+1, now())
+		]]>
+	</insert>
+
+	<update id="updateONO" parameterType="boardvo">
+	<![CDATA[
+			update board set o_no = o_no + 1 where o_no > #{orderNo} and g_no = #{groupNo}
+		]]>
+	</update>
+	
+	<select id="CountList">
+		<![CDATA[
+				select count(*) from board
+			]]>
+	</select>
+	
+	<update id="deletePost" parameterType="boardvo">
+	<![CDATA[
+			update board set title = '삭제된 글입니다.', reg_date = '0000-00-00 00:00:00' where no = #{no}
+		]]>
+	</update>
+	
+</mapper>
+
